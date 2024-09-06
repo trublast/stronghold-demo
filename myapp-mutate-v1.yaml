@@ -1,0 +1,19 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: myapp-mutate-v1
+  namespace: myapp-namespace
+  annotations:
+    secrets-store.deckhouse.io/env-from-path: secret/data/myapp
+    secrets-store.deckhouse.io/role: myapp
+spec:
+  terminationGracePeriodSeconds: 2
+  serviceAccountName: myapp
+  containers:
+  - image: alpine:3.20
+    name: myapp
+    command:
+    - sh
+    - -c
+    - while true; do date ; echo "password=$password"; unset password; sleep 5; done
+    resources:

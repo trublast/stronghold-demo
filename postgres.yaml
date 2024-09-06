@@ -1,0 +1,65 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  creationTimestamp: "2024-08-30T13:18:24Z"
+  name: postgres
+  namespace: myapp-namespace
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  labels:
+    app: postgres
+  name: postgres
+  namespace: myapp-namespace
+spec:
+  serviceName: postgres
+  revisionHistoryLimit: 2
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Delete
+    whenScaled: Delete
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+      annotations:
+        secrets-store.deckhouse.io/role: postgres
+    spec:
+      serviceAccountName: postgres
+      containers:
+      - image: postgres:16.4
+        name: postgres
+        env:
+        - name: POSTGRES_PASSWORD
+          value: secrets-store:secret/data/postgres#password
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/postgresql
+        ports:
+        - name: postgres
+          containerPort: 5432
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: myapp-namespace
+spec:
+  selector:
+    app: postgres
+  ports:
+  - port: 5432
+    targetPort: postgres

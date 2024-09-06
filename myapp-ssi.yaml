@@ -1,0 +1,14 @@
+apiVersion: deckhouse.io/v1alpha1
+kind: SecretsStoreImport
+metadata:
+  name: myapp
+  namespace: myapp-namespace
+spec:
+  type: CSI
+  role: myapp
+  files:
+  - name: password
+    source:
+      key: password
+      path: secret/data/myapp
+

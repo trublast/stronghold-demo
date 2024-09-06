@@ -1,0 +1,22 @@
+---
+# Данные статического пользователя.
+# https://deckhouse.ru/documentation/v1/modules/150-user-authn/cr.html#user
+apiVersion: deckhouse.io/v1
+kind: User
+metadata:
+  name: postgres
+spec:
+  # E-mail пользователя.
+  email: postgres@example.com
+  # echo "5GMhEICiR8" | htpasswd -BinC 10 "" | cut -d: -f2 | base64 -w0
+  password: 'JDJ5JDEwJDIwaUk0dmZhUVdBOGVZdjdxSGZKMnVQQ3kzUFltajJWV1FXQnMzOVR0dndZRlA1SlNHWDIyCgo='
+---
+apiVersion: deckhouse.io/v1alpha1
+kind: Group
+metadata:
+  name: postgres
+spec:
+  name: postgres
+  members:
+  - kind: User
+    name: postgres

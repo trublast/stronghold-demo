@@ -1,0 +1,21 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: myapp-csi
+  namespace: myapp-namespace
+spec:
+  terminationGracePeriodSeconds: 2
+  serviceAccountName: myapp
+  containers:
+  - image: jweissig/app:0.0.1
+    name: myapp
+    volumeMounts:
+    - name: my-secrets-store
+      mountPath: "/mnt/secrets-store"
+    resources:
+  volumes:
+    - name: my-secrets-store
+      csi:
+        driver: secrets-store.csi.deckhouse.io
+        volumeAttributes:
+          secretsStoreImport: "myapp"

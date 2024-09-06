@@ -1,0 +1,2 @@
+stronghold_addr = "https://stronghold.example.com"
+oidc_deckhouse_id="auth_oidc_6f76a367"
