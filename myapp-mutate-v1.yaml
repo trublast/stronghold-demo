@@ -10,7 +10,7 @@ spec:
   terminationGracePeriodSeconds: 2
   serviceAccountName: myapp
   containers:
-  - image: alpine:3.20
+  - image: alpine:3.20.3
     name: myapp
     command:
     - sh

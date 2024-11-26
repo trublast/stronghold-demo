@@ -15,3 +15,7 @@ variable "oidc_role" {
 variable "oidc_deckhouse_id" {
   type    = string
 }
+
+variable "stronghold_token" {
+  type    = string
+}

@@ -11,5 +11,5 @@
 #   name = "postgres"
 #   policy = file("policies/postgres.hcl")
 # }
-# # stronghold kv put secret/postgres password="pgpass"
-# # kubectl exec postgres-0 -c postgres  -it -- psql -d postgres -h postgres -U postgres
+# # d8 stronghold kv put secret/postgres password="pgpass"
+# # d8 kubectl exec postgres-0 -c postgres  -it -- psql -d postgres -h postgres -U postgres

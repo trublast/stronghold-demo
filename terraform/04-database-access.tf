@@ -47,7 +47,7 @@
 #   canonical_id   = vault_identity_group.postgres.id
 # }
 
-# # stronghold read database/creds/myapp
-# # stronghold read database/creds/myapp-superuser
+# # d8 stronghold read database/creds/myapp
+# # d8 stronghold read database/creds/myapp-superuser
 
-# # stronghold lease revoke -prefix=true -force=true database/creds/myapp
+# # d8 stronghold lease revoke -prefix=true -force=true database/creds/myapp

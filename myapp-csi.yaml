@@ -7,7 +7,10 @@ spec:
   terminationGracePeriodSeconds: 2
   serviceAccountName: myapp
   containers:
-  - image: jweissig/app:0.0.1
+  - image: alpine:3.20.3
+    command:
+    - sleep
+    - "2000000"
     name: myapp
     volumeMounts:
     - name: my-secrets-store

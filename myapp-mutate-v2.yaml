@@ -9,7 +9,7 @@ spec:
   serviceAccountName: myapp
   terminationGracePeriodSeconds: 2
   containers:
-  - image: alpine:3.20
+  - image: alpine:3.20.3
     env:
     - name: MY_PASS
       value: secrets-store:secret/data/myapp#password

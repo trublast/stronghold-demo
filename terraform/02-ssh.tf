@@ -25,7 +25,7 @@
 # }
 
 # # ssh-keygen -f demo
-# # stronghold login -method=oidc -path=oidc_deckhouse -no-print
+# # d8 stronghold login -method=oidc -path=oidc_deckhouse -no-print
 # # echo -n 'cert-authority,principals="connect" ' && stronghold read ssh/config/ca --format=json | jq -r .data.public_key
-# # stronghold write ssh/sign/ssh_access public_key=@demo.pub valid_principals=connect -format=json | jq -r .data.signed_key | sed '/^$/d' > demo-cert.pub && chmod 0600 demo-cert.pub
+# # d8 stronghold write ssh/sign/ssh_access public_key=@demo.pub valid_principals=connect -format=json | jq -r .data.signed_key | sed '/^$/d' > demo-cert.pub && chmod 0600 demo-cert.pub
 # # ssh demo-master-0 -l demo -i demo
