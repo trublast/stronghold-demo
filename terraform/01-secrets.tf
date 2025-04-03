@@ -17,6 +17,20 @@
 #   )
 # }
 
+# resource "vault_kv_secret_v2" "common_secret" {
+#   mount                      = vault_mount.secret.path
+#   name                       = "common"
+#   cas                        = 1
+#   delete_all_versions        = true
+#   data_json                  = jsonencode(
+#     {
+#         password       = "secret-password-common"
+#         user           = "user-common"
+#     }
+#   )
+# }
+
+
 # # export TF_VAR_stronghold_token=$(d8 stronghold login -method=oidc -path=oidc_deckhouse -token-only)
 # # export STRONGHOLD_TOKEN=$TF_VAR_stronghold_token
 # # d8 stronghold kv put secret/myapp password="secret-password"

@@ -1,0 +1,25 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: myapp-mutate-dynamic
+  namespace: myapp-namespace
+  annotations:
+    secrets-store.deckhouse.io/role: myapp
+spec:
+  serviceAccountName: myapp
+  terminationGracePeriodSeconds: 2
+  containers:
+  - image: postgres:16.4
+    env:
+    - name: PGUSER
+      value: secrets-store:database/creds/myapp#username
+    - name: PGPASSWORD
+      value: secrets-store:database/creds/myapp#password
+    - name: PGHOST
+      value: postgres
+    name: myapp
+    command:
+    - sh
+    - -c
+    - while true; do date ; psql -d postgres -c "select pg_is_in_recovery();" ; sleep 5; done
+    resources:
