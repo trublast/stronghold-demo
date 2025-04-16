@@ -17,10 +17,10 @@ resource "vault_kubernetes_secret_backend_role" "deploy_role" {
 
 resource "vault_jwt_auth_backend_role" "deploy_role" {
   backend         = vault_jwt_auth_backend.gitlab.path
-  role_name       = "deploy-from-gilab"
+  role_name       = "deploy-from-gitlab"
   token_policies  = [vault_policy.deploy_policy.name]
 
-  bound_audiences = ["gilab-access-aud"]
+  bound_audiences = ["gitlab-access-aud"]
   bound_claims = {
     "project_path" = "project-group/project-3"
   }

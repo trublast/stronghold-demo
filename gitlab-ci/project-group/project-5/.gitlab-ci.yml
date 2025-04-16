@@ -1,0 +1,46 @@
+variables:
+  STRONGHOLD_ADDR: https://stronghold.stronghold-demo.flant.dev
+  WERF_KUBE_API_SERVER: https://api.stronghold-demo.flant.dev
+
+.kube_login:
+  id_tokens:
+    MY_ID_TOKEN:
+      aud: gitlab-access-aud
+  before_script:
+    - type werf && source <(werf ci-env gitlab)
+    - export STRONGHOLD_TOKEN=$(d8 stronghold write -field=token auth/gitlab/login role=role-can-read-secret-and-deploy jwt=$MY_ID_TOKEN)
+    - export WERF_KUBE_TOKEN="$(d8 stronghold write -field=service_account_token kubernetes/creds/deploy_role kubernetes_namespace=d8-system)"
+    - |
+      export WERF_SET_SECRETS=global.secrets=$(curl -f -H "X-Vault-Token: $STRONGHOLD_TOKEN" $STRONGHOLD_ADDR/v1/gitlab-secret/data/${CI_ENVIRONMENT_SLUG}/${CI_PROJECT_PATH}/mysecret | jq -r '.data.data | to_entries[] | "\(.key): \(.value | @json)"' | base64 -w0)
+
+job_kubernetes_deploy_dev:
+  extends: .kube_login
+  script:
+    - werf converge
+  environment: production
+  tags:
+  - shared
+
+job_kubernetes_deploy_production:
+  extends: .kube_login
+  script:
+    - werf converge
+  environment: production
+  tags:
+  - shared
+
+job_kubernetes_deploy_dev:
+  extends: .kube_login
+  script:
+    - werf converge
+  environment: dev
+  tags:
+  - shared
+
+job_kubernetes_uninstall:
+  extends: .kube_login
+  script:
+    - werf dismiss
+  tags:
+  - shared
+  when: manual

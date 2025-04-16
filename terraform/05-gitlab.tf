@@ -30,10 +30,10 @@ EOT
 
 resource "vault_jwt_auth_backend_role" "role_by_project" {
   backend         = vault_jwt_auth_backend.gitlab.path
-  role_name       = "read-by-gilab-project"
+  role_name       = "read-by-gitlab-project"
   token_policies  = [vault_policy.read_by_project.name]
 
-  bound_audiences = ["gilab-access-aud"]
+  bound_audiences = ["gitlab-access-aud"]
   claim_mappings  = {"project_path": "project_path"}
 
   user_claim      = "project_path"
@@ -45,10 +45,10 @@ resource "vault_jwt_auth_backend_role" "role_by_project" {
 
 resource "vault_jwt_auth_backend_role" "role_by_project_env" {
   backend         = vault_jwt_auth_backend.gitlab.path
-  role_name       = "read-by-gilab-project-env"
+  role_name       = "read-by-gitlab-project-env"
   token_policies  =[vault_policy.read_by_project_env.name]
 
-  bound_audiences = ["gilab-access-aud"]
+  bound_audiences = ["gitlab-access-aud"]
   claim_mappings  = {"project_path": "project_path", "environment": "environment"}
 
   user_claim      = "project_path"
@@ -96,6 +96,31 @@ resource "vault_kv_secret_v2" "gitlab-secret-project-1-production" {
   data_json                  = jsonencode(
     {
         password       = "secret-password-for-project-1-production"
+    }
+  )
+}
+
+
+# секрет для проекта project-5
+resource "vault_kv_secret_v2" "gitlab-secret-project-5-production" {
+  mount                      = vault_mount.gitlab-secret.path
+  name                       = "production/project-group/project-5/mysecret"
+  data_json                  = jsonencode(
+    {
+        LOGIN          = "prod-my-secret-user"
+        PASSWORD       = "prod-secret-password-for-project-5"
+        DATABASE       = "prod-my-secret-database"
+    }
+  )
+}
+resource "vault_kv_secret_v2" "gitlab-secret-project-5-dev" {
+  mount                      = vault_mount.gitlab-secret.path
+  name                       = "dev/project-group/project-5/mysecret"
+  data_json                  = jsonencode(
+    {
+        LOGIN          = "dev-my-secret-user"
+        PASSWORD       = "dev-secret-password-for-project-5"
+        DATABASE       = "prod-my-secret-database"
     }
   )
 }

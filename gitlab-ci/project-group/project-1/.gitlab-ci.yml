@@ -1,6 +1,5 @@
 variables:
   STRONGHOLD_ADDR: https://stronghold.stronghold-demo.flant.dev
-
 job_with_secrets:
   id_tokens:
     MY_ID_TOKEN:
@@ -18,22 +17,8 @@ job_with_secrets_for_production:
       aud: gitlab-access-aud
   script:
     - export STRONGHOLD_TOKEN=$(d8 stronghold write -field=token auth/gitlab/login role=read-by-gitlab-project-env jwt=$MY_ID_TOKEN)
-    - export PASSWORD="$(d8 stronghold kv get -field=password gitlab-secret/${CI_ENVIRONMENT_NAME}/${CI_PROJECT_PATH}/mysecret)"
+    - export PASSWORD="$(d8 stronghold kv get -field=password gitlab-secret/${CI_ENVIRONMENT_SLUG}/${CI_PROJECT_PATH}/mysecret)"
     - echo Pass ${PASSWORD}
   environment: production
-  tags:
-  - shared
-
-job_kubernetes_deploy:
-  id_tokens:
-    MY_ID_TOKEN:
-      aud: gitlab-access-aud
-  variables:
-    WERF_KUBE_API_SERVER: https://api.stronghold-demo.flant.dev
-  script:
-    - export STRONGHOLD_TOKEN=$(d8 stronghold write -field=token auth/gitlab/login role=deploy-from-gitlab jwt=$MY_ID_TOKEN)
-    - export WERF_KUBE_TOKEN="$(d8 stronghold write -field=service_account_token kubernetes/creds/deploy_role kubernetes_namespace=d8-system)"
-    - werf converge ## helm install mychart .helm --kube-token $WERF_KUBE_TOKEN
-  when: manual
   tags:
   - shared

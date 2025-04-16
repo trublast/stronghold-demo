@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: test-5
+  name: test-5
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test-5
+  template:
+    metadata:
+      annotations:
+        checksum/secrets: {{ .Values.global.secrets | sha256sum }}
+      labels:
+        app: test-5
+    spec:
+      containers:
+      - image: nginx
+        name: nginx
+        envFrom:
+        - secretRef:
+            name: mysecret-project-5

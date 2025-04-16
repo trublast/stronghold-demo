@@ -1,0 +1,26 @@
+variables:
+  STRONGHOLD_ADDR: https://stronghold.stronghold-demo.flant.dev
+  WERF_KUBE_API_SERVER: https://api.stronghold-demo.flant.dev
+
+.kube_login:
+  id_tokens:
+    MY_ID_TOKEN:
+      aud: gitlab-access-aud
+  before_script:
+    - export STRONGHOLD_TOKEN=$(d8 stronghold write -field=token auth/gitlab/login role=deploy-from-gitlab jwt=$MY_ID_TOKEN)
+    - export WERF_KUBE_TOKEN="$(d8 stronghold write -field=service_account_token kubernetes/creds/deploy_role kubernetes_namespace=d8-system)"
+
+job_kubernetes_deploy:
+  extends: .kube_login
+  script:
+    - werf converge
+  tags:
+  - shared
+
+job_kubernetes_uninstall:
+  extends: .kube_login
+  script:
+    - werf dismiss
+  tags:
+  - shared
+  when: manual

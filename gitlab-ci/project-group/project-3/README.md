@@ -1,0 +1,1 @@
+Деплой в Kubernetes помощью werf, используя динамический WERF_KUBE_TOKEN - токен доступа к API K8s, который выписывает Stronghold

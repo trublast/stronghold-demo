@@ -1,0 +1,12 @@
+variables:
+  STRONGHOLD_ADDR: https://stronghold.stronghold-demo.flant.dev
+job_with_secrets:
+  id_tokens:
+    MY_ID_TOKEN:
+      aud: gitlab-access-aud
+  script:
+    - export STRONGHOLD_TOKEN=$(d8 stronghold write -field=token auth/gitlab/login role=read-by-gitlab-project jwt=$MY_ID_TOKEN)
+    - export PASSWORD="$(d8 stronghold kv get -field=password gitlab-secret/${CI_PROJECT_PATH}/mysecret)"
+    - echo Pass ${PASSWORD}
+  tags:
+  - shared

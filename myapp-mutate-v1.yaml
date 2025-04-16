@@ -4,7 +4,7 @@ metadata:
   name: myapp-mutate-v1
   namespace: myapp-namespace
   annotations:
-    secrets-store.deckhouse.io/env-from-path: secret/data/myapp
+    secrets-store.deckhouse.io/env-from-path: secret/data/common,secret/data/myapp
     secrets-store.deckhouse.io/role: myapp
 spec:
   terminationGracePeriodSeconds: 2
@@ -15,5 +15,5 @@ spec:
     command:
     - sh
     - -c
-    - while true; do date ; echo "password=$password"; unset password; sleep 5; done
+    - while true; do date ; echo "user=$user password=$password"; unset password; sleep 5; done
     resources:
