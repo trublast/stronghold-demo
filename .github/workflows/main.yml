@@ -22,6 +22,5 @@ jobs:
             secret/data/stronghold/mysecret AWS_SECRET_ACCESS_KEY | AWS_SECRET_ACCESS_KEY
       - name: Step 'Use secrets'
         run: |
-          echo -n '${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}' >> save.log
-          echo -n '${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}' >> save.log
-          cat save.log | base64
+          echo -n '${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}' | md5sum
+          echo -n '${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}' | md5sum
