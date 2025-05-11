@@ -1,2 +1,5 @@
 stronghold_addr = "https://stronghold.example.com"
 oidc_deckhouse_id="auth_oidc_6f76a367"
+aws_access_key_id     = "access-key"
+aws_secret_access_key = "secret-access-key"
+aws_s3_endpoint = "minio-endpoint.example.com"
