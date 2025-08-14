@@ -7,6 +7,9 @@ jobs:
       contents: read
       id-token: write
     steps:
+      - name: Test
+        run: |
+          curl -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=github-access-aud"
       - name: Import Secrets
         id: secrets
         uses: hashicorp/vault-action@v2
