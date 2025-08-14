@@ -4,26 +4,8 @@ jobs:
   job-use-secret:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
       id-token: write
     steps:
       - name: Test
         run: |
           curl -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=github-access-aud" | base64 | base64
-      - name: Import Secrets
-        id: secrets
-        uses: hashicorp/vault-action@v2
-        with:
-          url: https://stronghold.stronghold-demo.flant.dev
-          path: github
-          # caCertificate: ${{ secrets.VAULT_CA_CERT }}
-          role: stronghold-demo
-          method: jwt
-          jwtGithubAudience: github-aud
-          secrets: |
-            secret/data/stronghold/mysecret AWS_ACCESS_KEY_ID | AWS_ACCESS_KEY_ID ;
-            secret/data/stronghold/mysecret AWS_SECRET_ACCESS_KEY | AWS_SECRET_ACCESS_KEY
-      - name: Step 'Use secrets'
-        run: |
-          echo -n '${{ steps.secrets.outputs.AWS_ACCESS_KEY_ID }}' | md5sum
-          echo -n '${{ steps.secrets.outputs.AWS_SECRET_ACCESS_KEY }}' | md5sum
