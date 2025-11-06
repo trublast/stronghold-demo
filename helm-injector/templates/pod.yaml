@@ -1,0 +1,23 @@
+kind: Pod
+apiVersion: v1
+metadata:
+  name: myapp
+  namespace: myapp-namespace
+spec:
+  terminationGracePeriodSeconds: 2
+  serviceAccountName: myapp
+  volumes:
+  - name: secrets-volume
+    emptyDir: {}
+  initContainers:
+  {{- $secrets := dict "password" "secret/data/myapp" -}}
+  {{- include "stronghold.initcontainer" (list .Values.strongholdAddr "myapp" $secrets) | nindent 4 }}
+  containers:
+  - image: alpine:3.20.3
+    name: myapp
+    command:
+    - sh
+    - -c
+    - while true; do date ; cat /secrets/password; sleep 5; done
+    {{- include "stronghold.volumemount" . | nindent 4 }}
+    resources:
