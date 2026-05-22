@@ -1,5 +1,5 @@
 variable "stronghold_addr" {
-  type    = string
+  type = string
 }
 
 variable "oidc_mount" {
@@ -13,30 +13,30 @@ variable "oidc_role" {
 }
 
 variable "oidc_deckhouse_id" {
-  type    = string
+  type = string
 }
 
 variable "stronghold_token" {
-  type    = string
+  type = string
 }
 
 variable "aws_access_key_id" {
-  type    = string
+  type = string
 }
 
 variable "aws_secret_access_key" {
-  type    = string
+  type = string
 }
 
 variable "aws_s3_endpoint" {
-  type    = string
+  type = string
 }
 
 
 variable "gitlab_oidc_client_id" {
-  type    = string
+  type = string
 }
 
 variable "gitlab_oidc_client_secret" {
-  type    = string
+  type = string
 }

@@ -1,181 +1,147 @@
-# Аутентификация с помощью JWT
+# JWT-аутентификация GitLab CI в Stronghold
 
-Если есть необходимость доставить секреты из Stronghold в CI/CD пайплайн Gitlab можно воспользоваться схемой аутентификации пайплайна по JWT токену, который создает Gitlab для каждой Job.
+Пример показывает, как пайплайн получает секреты из Stronghold «на лету», без переменных GitLab и без хранения в репозитории. GitLab выпускает подписанный JWT на каждую job; Stronghold выдаёт краткоживущий токен с политикой, согласованной с claims в JWT. Секреты в KV могут быть статическими или динамическими — их не нужно вручную ротировать в CI.
 
-Основная идея в том, что доступ выдается на основе параметров, которые присутствуют в подписанном JWT-токене. Скрипты в пайплайне не могут менять содержимое токена, его создает Gitlab на этапе запуска задачи. Доступ существует ограниченное время, и отзывается после истечение TTL.
+## Что демонстрирует пример
 
-## Что в этом примере
+- Аутентификация job в Stronghold через `id_tokens` и `auth/gitlab/login`.
+- Доступ к секретам только в пределах пути проекта (`read-by-gitlab-project`).
+- Разделение секретов по GitLab Environment (`read-by-gitlab-project-env`).
 
-job_with_secrets: получает секрет `gitlab-secret/${CI_PROJECT_PATH}/mysecret` используя роль `read-by-gitlab-project`
+## Jobs в `.gitlab-ci.yml`
 
-job_with_secrets_for_production: получает секрет `gitlab-secret/${CI_ENVIRONMENT_SLUG}/${CI_PROJECT_PATH}/mysecret` используя роль `read-by-gitlab-projec-env`
+| Job | Роль Stronghold | Путь к секрету |
+|-----|-----------------|----------------|
+| `job_with_secrets` | `read-by-gitlab-project` | `gitlab-secret/${CI_PROJECT_PATH}/mysecret` |
+| `job_with_secrets_for_production` | `read-by-gitlab-project-env` | `gitlab-secret/${CI_ENVIRONMENT_SLUG}/${CI_PROJECT_PATH}/mysecret` (environment: `production`) |
 
-## Как работает:
+См. [`.gitlab-ci.yml`](.gitlab-ci.yml).
 
-При запуске пайплайна гитлаб создает и подписывает JWT-токен, в который помещает информацию о запущенной задаче.
+## Как это работает
 
-Пример такого токена
+При старте job GitLab создаёт JWT с метаданными пайплайна (проект, ветка, пользователь, environment и т.д.). Скрипт не может подменить claims — только передать токен в Stronghold. После `auth/gitlab/login` job читает поле из KV через `d8 stronghold kv get`.
+
+Фрагмент payload JWT (полный набор полей зависит от версии GitLab):
 
 ```json
 {
-  "namespace_id": "3",
-  "namespace_path": "project-group",
-  "project_id": "1",
   "project_path": "project-group/project-1",
-  "user_id": "2",
-  "user_login": "maksim.kiselev",
-  "user_email": "maksim.kiselev@flant.com",
-  "user_access_level": "owner",
-  "pipeline_id": "5",
-  "pipeline_source": "push",
-  "job_id": "3",
   "ref": "main",
-  "ref_type": "branch",
-  "ref_path": "refs/heads/main",
   "ref_protected": "true",
-  "runner_id": 1,
-  "runner_environment": "self-hosted",
-  "sha": "4c0a94fa43ce497bbd389e66f03c7ef5a3b11b13",
-  "project_visibility": "private",
-  "ci_config_ref_uri": "gitlab.demo-cluster.ru/project-group/project-1//.gitlab-ci.yml@refs/heads/main",
-  "ci_config_sha": "4c0a94fa43ce497bbd389e66f03c7ef5a3b11b13",
-  "jti": "7f89b9e9-f076-4f44-ae73-0405c210dbbe",
-  "iat": 1739203332,
-  "nbf": 1739203327,
-  "exp": 1739206932,
-  "iss": "https://gitlab.demo-cluster.ru",
-  "sub": "project_path:project-group/project-1:ref_type:branch:ref:main",
-  "aud": "gitlab-access-aud"
+  "environment": "production",
+  "aud": "gitlab-access-aud",
+  "iss": "https://gitlab.demo-cluster.ru"
 }
 ```
 
-## Настройка Stronghold
+## Настройка в Stronghold (Terraform)
 
-На стороне Stronghold можно создать метод аутентификации JWT, который позволит аутентифицироваться на основании JWT токенов Gitlab
+Конфигурация demo: [`terraform/05-gitlab.tf`](../../../terraform/05-gitlab.tf).
 
-```bash
-stronghold write auth/gitlab/config \
-    oidc_discovery_url="https://gitlab.demo-cluster.ru" \
-    bound_issuer="https://gitlab.demo-cluster.ru"
-```
+### JWT auth method для GitLab
 
-При аутиентифкации через auth/gitlab Stronghold проверит, что токен выпущен именно этим Gitlab-ом. Если это не так, то аутентификация не пройдет.
-
-Далее можно создать роль, которая добавит к токену политику myproject-production если JTW соответствует определенным параметрам
-
-```bash
-$ stronghold write auth/gitlab/role/myproject-production - <<EOF
-{
-  "role_type": "jwt",
-  "policies": ["myproject-production"],
-  "token_explicit_max_ttl": 60,
-  "user_claim": "user_email",
-  "bound_audiences": "gitlab-access-aud",
-  "bound_claims_type": "glob",
-  "bound_claims": {
-    "project_id": "22",
-    "ref_protected": "true",
-    "ref_type": "branch",
-    "ref": "auto-deploy-*"
-  }
+```1:7:terraform/05-gitlab.tf
+resource "vault_jwt_auth_backend" "gitlab" {
+  description        = "Demo for gitlab"
+  path               = "gitlab"
+  type               = "jwt"
+  oidc_discovery_url = "https://gitlab.demo-cluster.ru"
+  bound_issuer       = "https://gitlab.demo-cluster.ru"
 }
-EOF
 ```
 
-В данном пример токену будет добавлена политика `myproject-production`  если id проекта 22, запуск произошел из protected-ветки и шаблон имени ветки `auto-deploy-*`
+Эквивалент через CLI: `stronghold write auth/gitlab/config oidc_discovery_url=... bound_issuer=...`.
 
+### Политика и роль: секрет по пути проекта
 
-Получить токен для доступа к Stronghold в `.gitlab-ci.yml` можно так:
+Используется в `job_with_secrets`.
 
-```yaml
-variables:
-  STRONGHOLD_ADDR: https://stronghold.domain.tld
-job_with_secrets:
-  id_tokens:
-    MY_ID_TOKEN:
-      aud: gitlab-access-aud
-  script:
-    - export STRONGHOLD_TOKEN=$(d8 stronghold write -field=token auth/gitlab/login role=myproject-production jwt=$MY_ID_TOKEN)
-```
-
-
-Если bound_claims совпадут, будет выпущен токен с политикой `myproject-production`
-
-## Пример для доступа к секретам попроектно
-
-Для начала создадим политику `per-project-access` с шаблоном
-
-```sh
-path "gitlab-secret/data/{{identity.entity.aliases.ACCESSOR_NAME.metadata.project_path}}/*" {
+```10:42:terraform/05-gitlab.tf
+resource "vault_policy" "read_by_project" {
+  name   = "per-project-access"
+  policy = <<EOT
+path "gitlab-secret/data/{{identity.entity.aliases.${vault_jwt_auth_backend.gitlab.accessor}.metadata.project_path}}/*" {
   capabilities = ["read"]
 }
-```
-
-(ACCESOR_NAME - имя вашего auth/gitlab)
-
-Создадим роль read-by-gitlab-project
-
-```bash
-$ stronghold write auth/gitlab/role/read-by-gitlab-project - <<EOF
-{
-  "role_type": "jwt",
-  "policies": ["per-project-access"],
-  "token_explicit_max_ttl": 60,
-  "user_claim": "project_path",
-  "bound_audiences": "gitlab-access-aud",
-  "claim_mappings": {
-    "project_path": "project_path"
-  }
+EOT
 }
-EOF
+
+resource "vault_jwt_auth_backend_role" "role_by_project" {
+  backend        = vault_jwt_auth_backend.gitlab.path
+  role_name      = "read-by-gitlab-project"
+  token_policies = [vault_policy.read_by_project.name]
+
+  bound_audiences = ["gitlab-access-aud"]
+  claim_mappings  = { "project_path" : "project_path" }
+
+  user_claim = "project_path"
+  role_type  = "jwt"
+  token_ttl  = 300
+}
 ```
 
-В случае успешной аутентификации токену будет выдана политика, которая предоставит доступ на чтение секретов по пути:
-`gitlab-secret/путь-проекта/в-гитлабе/*`
+### Политика и роль: секрет по проекту и environment
 
-Если разметить секреты в Stronghold аналогично названиям проектов в гитлабе, то каждый проект получит доступ только к своим секретам (находящимся по соответствующим путям).
+Используется в `job_with_secrets_for_production` (claim `environment` появляется при `environment:` в job).
 
-Можно усложнить шаблон, и помимо пути к проекту использовать env проекта
-
-Политика `read-by-gitlab-project-env`
-
-```sh
-path "gitlab-secret/data/{{identity.entity.aliases.ACCESSOR_NAME.metadata.project_path}}/{{identity.entity.aliases.ACCESSOR_NAME.metadata.environment}}/*" {
+```19:57:terraform/05-gitlab.tf
+resource "vault_policy" "read_by_project_env" {
+  name   = "per-project-access-with-env"
+  policy = <<EOT
+path "gitlab-secret/data/{{identity.entity.aliases.${vault_jwt_auth_backend.gitlab.accessor}.metadata.environment}}/{{identity.entity.aliases.${vault_jwt_auth_backend.gitlab.accessor}.metadata.project_path}}/*" {
   capabilities = ["read"]
 }
-```
-роль
-
-```bash
-$ stronghold write auth/gitlab/role/read-by-gitlab-project-env - <<EOF
-{
-  "role_type": "jwt",
-  "policies": ["per-project-access"],
-  "token_explicit_max_ttl": 60,
-  "user_claim": "project_path",
-  "bound_audiences": "gitlab-access-aud",
-  "claim_mappings": {
-    "project_path": "project_path",
-    "environment": "environment"
-  }
+EOT
 }
-EOF
+
+resource "vault_jwt_auth_backend_role" "role_by_project_env" {
+  backend        = vault_jwt_auth_backend.gitlab.path
+  role_name      = "read-by-gitlab-project-env"
+  token_policies = [vault_policy.read_by_project_env.name]
+
+  bound_audiences = ["gitlab-access-aud"]
+  claim_mappings  = { "project_path" : "project_path", "environment" : "environment" }
+
+  user_claim = "project_path"
+  role_type  = "jwt"
+  token_ttl  = 300
+}
 ```
 
-Пример `.gitlab-ci.yml`
+### KV mount и секреты для этого проекта
 
-```yaml
-variables:
-  STRONGHOLD_ADDR: https://stronghold.domain.tld
-job_with_secrets_for_production:
-  id_tokens:
-    MY_ID_TOKEN:
-      aud: gitlab-access-aud
-  script:
-    - export STRONGHOLD_TOKEN=$(d8 stronghold write -field=token auth/gitlab/login role=read-by-gitlab-project-env jwt=$MY_ID_TOKEN)
-    - export PASSWORD="$(d8 stronghold kv get -field=password gitlab-secret/${CI_PROJECT_PATH}/${CI_ENVIRONMENT_SLUG}/mysecret)"
-    - connect-db.sh ${PASSWORD}
-  environment: production
+```61:101:terraform/05-gitlab.tf
+resource "vault_mount" "gitlab-secret" {
+  path        = "gitlab-secret"
+  type        = "kv"
+  options     = { version = "2" }
+  description = "Secrets for gitlab"
+}
+
+resource "vault_kv_secret_v2" "gitlab-secret-project-1" {
+  mount = vault_mount.gitlab-secret.path
+  name  = "project-group/project-1/mysecret"
+  data_json = jsonencode(
+    {
+      password = "secret-password-for-project-1"
+    }
+  )
+}
+
+resource "vault_kv_secret_v2" "gitlab-secret-project-1-production" {
+  mount = vault_mount.gitlab-secret.path
+  name  = "production/project-group/project-1/mysecret"
+  data_json = jsonencode(
+    {
+      password = "secret-password-for-project-1-production"
+    }
+  )
+}
 ```
 
-![alt text](image.png)
+Дополнительно роли можно ограничить `bound_claims` (ветка, `project_id`, protected ref) — пример для деплоя в Kubernetes: [`terraform/06-gitlab-deploy.tf`](../../../terraform/06-gitlab-deploy.tf).
+
+## См. также
+
+- [project-2](../project-2/README.md) — изоляция доступа между проектами
+- [project-3](../project-3/README.md) — временный токен Kubernetes
